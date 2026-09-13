@@ -11,6 +11,8 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{booktabs}
+\usepackage{subcaption} % Required for side-by-side images
+\usepackage{placeins}
 
 \setlength{\columnsep}{0.6cm}
 
@@ -86,9 +88,82 @@
 \vspace{0.5cm}
 
 
-\section{Task 1: }
+\section{Task 1: Converting URDF to Xacro}
 
+Task 1 converted the teacher's Assignment 1 robot from URDF to Xacro. The teacher's \texttt{assignment\_1} package was used as the starting point, and the original URDF was kept while a separate file, \texttt{caster\_bot.urdf.xacro}, was created.
 
+The left and right wheels had the same geometry but different names and positions. Their separate link and joint definitions were therefore replaced with one \texttt{wheel} macro, using \texttt{prefix} and \texttt{y\_position} as parameters. Calling this macro twice created both wheels. The wheel radius and width were defined as properties so that both wheels could be updated in one place. The chassis, caster wheel and robot dimensions were preserved.
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/1.png}
+        \caption{Wheel link and visual geometry defined inside the wheel macro.}
+        \label{fig:wheel-macro-link}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/3.png}
+        \caption{Wheel joint connecting the wheel link to the base link.}
+        \label{fig:wheel-macro-joint}
+    \end{subfigure}
+ 
+    \vspace{0.5em}
+ 
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/2.png}
+        \caption{Wheel radius and width defined as properties.}
+        \label{fig:wheel-properties}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/4.png}
+        \caption{The wheel macro called twice to create the left and right wheels.}
+        \label{fig:wheel-macro-calls}
+    \end{subfigure}
+    \caption{Wheel properties, wheel macro and the two macro calls.}
+    \label{fig:wheel-macro}
+\end{figure}
+
+An initial difficulty was understanding where to place the properties and how to use them. The parameterised \texttt{<cylinder>} element was mistakenly added directly inside \texttt{<robot>}, while the wheel macro still used fixed dimensions. This was corrected by placing the properties before the macro and moving the parameterised cylinder definition into the macro's \texttt{<visual><geometry>} block.
+
+The file was then checked by running:
+\begin{verbatim}
+xacro urdf/caster_bot.urdf.xacro
+\end{verbatim}
+The conversion produced URDF output without errors. In \texttt{display.launch.xml}, the model path was changed to the new Xacro file. The launch file already used the \texttt{xacro} command to generate \texttt{robot\_description}, so that command did not need changing.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/launchfile.png}
+    \caption{Launch file configured to load the Xacro robot model and start robot\_state\_publisher, joint\_state\_publisher\_gui and RViz.}
+    \label{fig:launchfile}
+\end{figure}
+
+Finally, the package was rebuilt with \texttt{colcon}, the workspace was sourced, and \texttt{display.launch.xml} was launched. RViz showed the chassis, both wheels and caster in their expected positions, confirming that the conversion preserved the robot's appearance.
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/robot_ulidar.png}
+        \label{fig:robot-ulidar}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/robot_mlidar.png}
+        \label{fig:robot-mlidar}
+    \end{subfigure}
+    \caption{The Xacro robot in RViz, with its links visible in the display panel.}
+    \label{fig:robot-rviz}
+\end{figure}
+
+  \FloatBarrier
 \section{Task 2: Spawning in Gazebo and Teleoperation}
 
 The simulation world was based on the \texttt{shapes.sdf} example launched with
