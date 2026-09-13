@@ -299,5 +299,38 @@ After moving the robot forward using \texttt{teleop\_twist\_keyboard}, its wheel
 
 \section{Problems Encountered and Solutions}
 
+The implementation involved a few configuration and formatting errors.  The
+main issues and how they were resolved are summarized below.
+
+\begin{enumerate}
+  \item Xacro parameters were initially written with parentheses, for example
+  \texttt{\$(body\_width)}.  The resulting ``Unknown substitution command''
+  error led us to check the xacro substitution syntax.  Replacing the
+  parentheses with curly braces, \texttt{\$\{body\_width\}}, fixed the issue.
+
+  \item It was unclear where the Gazebo contact-coefficient tag belonged in
+  the URDF.  The class slides and the Gazebo URDF tutorial explained the
+  \texttt{<gazebo>} tag, but not its placement.  An LLM suggested putting it
+  inside \texttt{<robot>}; we tested this suggestion, and the caster friction
+  settings then worked as expected.
+
+  \item A comment in the xacro file caused a compilation error.  Since the
+  comment contained a colon, it was removed to test whether it was involved.
+  The error disappeared, so the unnecessary comment was left out.
+
+  \item RViz reported that the inertia element was missing the \texttt{ixx}
+  attribute and could not parse the link inertial data.  Comparing the XML with
+  the URDF format showed that the inertia values had been written as child
+  elements.  They were changed to attributes, for example
+  \texttt{<inertia ixx="..." iyy="..." izz="..." ixy="0" ixz="0" iyz="0"/>}.
+
+  \item RViz initially did not display the wheel transforms.  Running
+  \texttt{gz topic -l} showed both \texttt{joint\_states} and
+  \texttt{/world/world\_demo/model/my\_robot/joint\_state}.  We compared these
+  names with the bridge configuration and changed \texttt{gz\_topic\_name} to
+  the full Gazebo topic path.  The joint states then reached ROS and the wheel
+  transforms appeared in RViz.
+\end{enumerate}
+
 
 \end{document}
