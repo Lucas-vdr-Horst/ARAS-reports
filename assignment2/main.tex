@@ -366,10 +366,102 @@ After moving the robot forward using \texttt{teleop\_twist\_keyboard}, its wheel
 
 
 
-\section{Task 3: }
+\section{Task 3: Adding a LiDAR Sensor}
 
+We added a link called laser\_link to represent the LIDAR sensor which
+was shaped as a small cylinder on top of the robot with a fixed joint.
+We attached the gpu\_lidar sensor to the link to scan 360 degrees.
 
-\section{Task 4: }
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{images/Lidar.png}
+  \caption{The laser\_link, laser\_joint, and sensor block in the Xacro
+  file, along with the diff-drive and joint-state-publisher plugins.}
+\end{figure}
+
+Checking if it works:
+
+Before we looked at it visually, we decided to check the topic data.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{images/laser_link_echo.png}
+  \caption{The LaserScan message, showing a full 360 degree angle range
+  with a range of 0.1 to 10 meters.}
+\end{figure}
+
+This shows the laserscan message which lets us see that the angle
+range is a full circle which is 360 degrees with a range of 0.1 to 10
+meters. We also used the LIDAR visualizer to see the rays directly.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/Lidarsensorworking.png}
+  \caption{The rays hitting the objects placed in the world.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{images/Lidarworkingclose.png}
+  \caption{A close up of the robot with rays.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/gazebo_sphere_to_rviz.png}
+  \caption{The robot near a sphere. The rays are seen to be stopping at
+  the surface.}
+\end{figure}
+
+\subsection*{Reflection}
+
+It was satisfying to add the LIDAR sensor. The result was easy to
+check with the numbers on the /scan topic and as visual rays in the
+gazebo LIDAR visualizer.
+
+We also noticed that some rays hit the robot's own body, but this was
+because of the bigger wheels blocking parts of the rays as you can see
+in the earlier pictures. One group member limited the range to 180
+degrees so the sensor only looked forward across the area the wheels
+wasn't blocking. A cleaner fix for this would probably be to mount the
+sensor higher above the wheels or use smaller wheels if you want a 360
+degree scan.
+
+\section{Task 4: Visualizing Sensor Data}
+
+\subsection*{Setting up RViz}
+
+To see the LIDAR data properly, I opened RViz and set the fixed frame
+to base\_link and added a RobotModel display pointing to the
+robot\_description. Also, a LaserScan was added subscribed to /scan.
+
+\subsection*{Matching Gazebo and RViz}
+
+To show that the RViz LaserScan display matched what was showing in
+the simulation, we drove the robot close to the sphere. As you can see
+in this picture, a red bow shows the outer part of the sphere.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.48\textwidth]{images/gazebo_sphere_to_rviz.png}
+  \includegraphics[width=0.48\textwidth]{images/rviz_object_detected.png}
+  \caption{Curved arc of LaserScan points tracing the surface of the
+  sphere. This confirms that the scan data matches the object's real
+  position and shape in our simulated world.}
+\end{figure}
+
+\subsection*{Reflection}
+
+Getting RViz to show the robot correctly took some troubleshooting. At
+first, the wheels didn't show up right, they collapsed into the center
+of the robot instead of sitting where they should. RViz said there was
+no transform for the left and right wheel.
+
+We found out that gazebo's joint-state-publisher was publishing to a
+different topic name than what our bridge config expected. We checked
+gazebo's own topic list to see the actual name, and once we fixed the
+bridge config to match it, the wheels showed up correctly and the
+laser scan started lining up with the objects in the world.
 
 
 \section{Problems Encountered and Solutions}
