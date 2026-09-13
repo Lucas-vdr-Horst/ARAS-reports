@@ -413,19 +413,6 @@ meters. We also used the LIDAR visualizer to see the rays directly.
   the surface.}
 \end{figure}
 
-\subsection*{Reflection}
-
-It was satisfying to add the LIDAR sensor. The result was easy to
-check with the numbers on the /scan topic and as visual rays in the
-gazebo LIDAR visualizer.
-
-We also noticed that some rays hit the robot's own body, but this was
-because of the bigger wheels blocking parts of the rays as you can see
-in the earlier pictures. One group member limited the range to 180
-degrees so the sensor only looked forward across the area the wheels
-wasn't blocking. A cleaner fix for this would probably be to mount the
-sensor higher above the wheels or use smaller wheels if you want a 360
-degree scan.
 
 \section{Task 4: Visualizing Sensor Data}
 
@@ -450,18 +437,6 @@ in this picture, a red bow shows the outer part of the sphere.
   position and shape in our simulated world.}
 \end{figure}
 
-\subsection*{Reflection}
-
-Getting RViz to show the robot correctly took some troubleshooting. At
-first, the wheels didn't show up right, they collapsed into the center
-of the robot instead of sitting where they should. RViz said there was
-no transform for the left and right wheel.
-
-We found out that gazebo's joint-state-publisher was publishing to a
-different topic name than what our bridge config expected. We checked
-gazebo's own topic list to see the actual name, and once we fixed the
-bridge config to match it, the wheels showed up correctly and the
-laser scan started lining up with the objects in the world.
 
 
 \section{Problems Encountered and Solutions}
@@ -497,6 +472,29 @@ main issues and how they were resolved are summarized below.
   names with the bridge configuration and changed \texttt{gz\_topic\_name} to
   the full Gazebo topic path.  The joint states then reached ROS and the wheel
   transforms appeared in RViz.
+
+  \item It was satisfying to add the LIDAR sensor. The result was easy to
+  check with the numbers on the /scan topic and as visual rays in the
+  gazebo LIDAR visualizer.
+
+  We also noticed that some rays hit the robot's own body, but this was
+  because of the bigger wheels blocking parts of the rays as you can see
+  in the earlier pictures. One group member limited the range to 180
+  degrees so the sensor only looked forward across the area the wheels
+  wasn't blocking. A cleaner fix for this would probably be to mount the
+  sensor higher above the wheels or use smaller wheels if you want a 360
+  degree scan.
+
+  \item Getting RViz to show the robot correctly took some troubleshooting. At
+  first, the wheels didn't show up right, they collapsed into the center
+  of the robot instead of sitting where they should. RViz said there was
+  no transform for the left and right wheel.
+
+  We found out that gazebo's joint-state-publisher was publishing to a
+  different topic name than what our bridge config expected. We checked
+  gazebo's own topic list to see the actual name, and once we fixed the
+  bridge config to match it, the wheels showed up correctly and the
+  laser scan started lining up with the objects in the world.
 
   \item The lidar visualization appeared in Gazebo but remained fixed at the
   origin, and Gazebo reported that the lidar entity for \texttt{/scan} could
