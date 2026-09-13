@@ -330,6 +330,20 @@ main issues and how they were resolved are summarized below.
   names with the bridge configuration and changed \texttt{gz\_topic\_name} to
   the full Gazebo topic path.  The joint states then reached ROS and the wheel
   transforms appeared in RViz.
+
+  \item The lidar visualization appeared in Gazebo but remained fixed at the
+  origin, and Gazebo reported that the lidar entity for \texttt{/scan} could
+  not be found, even though messages were being published on that topic. 
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/gazebo_lidar_bug.png}
+    \caption{The lidar visualization in Gazebo, fixed at the origin.}
+    \label{fig:gazebo-lidar-bug}
+  \end{figure}
+  The problem was caused by the Gazebo GUI being initialized before the lidar was
+  available.  To ensure that the GUI starts only after Gazebo has finished
+  initializing, the XML launch file was refactored as a Python launch file,
+  which supports waiting for the server process before starting the GUI.
 \end{enumerate}
 
 
