@@ -7,6 +7,9 @@
 \usepackage{float}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
 
 \setlength{\columnsep}{0.6cm}
 
@@ -14,6 +17,42 @@
 \fancyhf{}
 \fancyfoot[R]{Page \thepage}
 \renewcommand{\headrulewidth}{0pt}
+
+\definecolor{codebackground}{RGB}{245,247,249}
+\definecolor{codecomment}{RGB}{88,96,105}
+\definecolor{codetag}{RGB}{0,92,153}
+\definecolor{codestring}{RGB}{145,80,0}
+\definecolor{codenumber}{RGB}{122,65,160}
+\definecolor{codekeyword}{RGB}{128,32,96}
+\lstdefinelanguage{XACRO}{
+  language=XML,
+  morekeywords={xacro:property,xacro:macro,xacro:include},
+  tagstyle=\color{codetag}\bfseries,
+  stringstyle=\color{codestring},
+  numberstyle=\color{codenumber},
+  keywordstyle=\color{codekeyword}\bfseries
+}
+\lstdefinelanguage{YAML}{
+  morekeywords={ros_topic,gz_topic,ros_type,gz_type,direction},
+  keywordstyle=\color{codekeyword}\bfseries
+}
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  backgroundcolor=\color{codebackground},
+  frame=single,
+  rulecolor=\color{black!15},
+  framerule=0.4pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  commentstyle=\color{codecomment},
+  keywordstyle=\color{codekeyword}\bfseries,
+  stringstyle=\color{codestring},
+  numberstyle=\color{codenumber},
+  xleftmargin=0.2cm,
+  xrightmargin=0.2cm
+}
 
 \begin{document}
 
@@ -49,7 +88,153 @@
 \section{Task 1: }
 
 
-\section{Task 2: }
+\section{Task 2: Spawning in Gazebo and Teleoperation}
+
+The simulation world was based on the \texttt{shapes.sdf} example launched with
+\texttt{gz sim shapes.sdf}. The original example contains multiple different shapes
+arranged in neat rows. We used it as a basis, keeping the ground plane and sun while
+copying and repositioning selected boxes and cylinders around the world. The other
+shapes were removed to create the environment shown in Figure~\ref{fig:shapes-world}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/shapes_world.png}
+    \caption{World based on \texttt{gz sim shapes.sdf}, with a ground plane, sun, boxes, and cylinders.}
+    \label{fig:shapes-world}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/my_world.png}
+    \caption{The final world used for the assignment, with a ground plane, sun, boxes, and cylinders.}
+    \label{fig:my-world}
+\end{figure}
+
+The robot description was extended with collision and inertial properties.  These
+properties allow Gazebo to detect contacts and simulate the robot's dynamics.
+For example, the wheel collision geometry is defined as a cylinder:
+
+\begin{lstlisting}[language=XACRO]
+<collision>
+  <geometry>
+    <cylinder length="${length}" radius="${radius}" />
+  </geometry>
+</collision>
+\end{lstlisting}
+
+The wheel mass and principal moments of inertia are also specified.  The inertia
+values use the standard formulas for a solid cylinder.
+
+\begin{lstlisting}[language=XACRO]
+<inertial>
+  <mass value="${wheel_mass}" />
+  <inertia
+    ixx="${1/4 * wheel_mass * wheel_radius * wheel_radius
+      + 1/12 * wheel_mass * wheel_length * wheel_length}"
+    iyy="${1/4 * wheel_mass * wheel_radius * wheel_radius
+      + 1/12 * wheel_mass * wheel_length * wheel_length}"
+    izz="${1/2 * wheel_mass * wheel_radius * wheel_radius}"
+    ixy="0" ixz="0" iyz="0" />
+</inertial>
+\end{lstlisting}
+This is also done for the body, and caster wheel, using the appropriate formulas for a box and a solid sphere.  
+
+The caster wheel was given a low friction coefficient so that it can rotate and
+follow the robot without significantly resisting its motion:
+
+\begin{lstlisting}[language=XACRO]
+<gazebo reference="caster_wheel">
+  <mu1>0.1</mu1>
+  <mu2>0.1</mu2>
+</gazebo>
+\end{lstlisting}
+
+The Gazebo DiffDrive system was added to convert velocity commands on
+\texttt{cmd\_vel} into motion of the two drive wheels.  The wheel separation,
+wheel radius, and joint names are taken from the xacro parameters:
+
+\begin{lstlisting}[language=XACRO]
+<plugin filename="gz-sim-diff-drive-system"
+        name="gz::sim::systems::DiffDrive">
+  <left_joint>chassis_to_left_wheel</left_joint>
+  <right_joint>chassis_to_right_wheel</right_joint>
+  <wheel_separation>${chassis_width}</wheel_separation>
+  <wheel_radius>${wheel_radius}</wheel_radius>
+  <topic>cmd_vel</topic>
+</plugin>
+\end{lstlisting}
+
+Gazebo now publishes the joint states directly using its JointStatePublisher
+system, so the separate ROS joint-state-publisher node is no longer needed:
+
+\begin{lstlisting}[language=XACRO]
+<plugin filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher" />
+\end{lstlisting}
+
+\subsection{ROS--Gazebo topic bridges}
+
+The \texttt{ros\_gz\_bridge} configuration connects the ROS and Gazebo topics.
+Velocity commands travel from ROS to Gazebo; clock, joint states, odometry,
+transforms, and laser scans travel in the opposite direction.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lllll@{}}
+\toprule
+ROS topic & Gazebo topic & ROS type & Gazebo type & Direction \\
+\midrule
+\texttt{cmd\_vel} & \texttt{cmd\_vel} & \texttt{Twist} & \texttt{Twist} & ROS--GZ \\
+\texttt{clock} & \texttt{clock} & \texttt{Clock} & \texttt{Clock} & GZ--ROS \\
+\texttt{joint\_states} & \texttt{.../joint\_state} & \texttt{JointState} & \texttt{Model} & GZ--ROS \\
+\texttt{odom} & \texttt{odom} & \texttt{Odometry} & \texttt{Odometry} & GZ--ROS \\
+\texttt{tf} & \texttt{tf} & \texttt{TFMessage} & \texttt{Pose\_V} & GZ--ROS \\
+\texttt{scan} & \texttt{scan} & \texttt{LaserScan} & \texttt{LaserScan} & GZ--ROS \\
+\bottomrule
+\end{tabular}
+\caption{Topics bridged between ROS 2 and Gazebo.}
+\label{tab:topic-bridges}
+\end{table}
+
+For example the yaml part of the bridge configuration for the \texttt{cmd\_vel} topic is shown below:
+
+\begin{lstlisting}[language=YAML]
+- ros_topic: cmd_vel
+  gz_topic: cmd_vel
+  ros_type: geometry_msgs/Twist
+  gz_type: geometry_msgs/Twist
+  direction: ROS--GZ
+\end{lstlisting}
+
+\subsection{Launch configuration}
+
+The launch file starts Gazebo with the custom world, publishes the robot
+description, spawns the robot from the \texttt{robot\_description} topic, and
+starts the configured topic bridge.  RViz and all relevant nodes use simulation
+time.  Teleoperation is provided by \texttt{teleop\_twist\_keyboard}, which
+publishes velocity commands to \texttt{cmd\_vel}.  The separate joint state
+publisher is retired because Gazebo now provides those messages.
+
+
+The initial state of the spawned robot is shown in Figure~\ref{fig:robot-initial}. The robot is visible in both RViz and Gazebo immediately after spawning.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/robot_initial.png}
+    \caption{The robot just after spawning, shown in both RViz and Gazebo.}
+    \label{fig:robot-initial}
+\end{figure}
+
+After moving the robot forward using \texttt{teleop\_twist\_keyboard}, its wheels have changed angle in RViz and its position has changed in Gazebo, as shown in Figure~\ref{fig:robot-moved}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/robot_moved.png}
+    \caption{The robot after being moved forward with \texttt{teleop\_twist\_keyboard}; the wheel angles in RViz and the robot's position in Gazebo have changed.}
+    \label{fig:robot-moved}
+\end{figure}
+
 
 
 \section{Task 3: }
