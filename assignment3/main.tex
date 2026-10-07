@@ -1,0 +1,119 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{svg}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{subcaption} % Required for side-by-side images
+\usepackage{placeins}
+
+\setlength{\columnsep}{0.6cm}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[R]{Page \thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\definecolor{codebackground}{RGB}{245,247,249}
+\definecolor{codecomment}{RGB}{88,96,105}
+\definecolor{codetag}{RGB}{0,92,153}
+\definecolor{codestring}{RGB}{145,80,0}
+\definecolor{codenumber}{RGB}{122,65,160}
+\definecolor{codekeyword}{RGB}{128,32,96}
+\lstdefinelanguage{XACRO}{
+  language=XML,
+  morekeywords={xacro:property,xacro:macro,xacro:include},
+  tagstyle=\color{codetag}\bfseries,
+  stringstyle=\color{codestring},
+  numberstyle=\color{codenumber},
+  keywordstyle=\color{codekeyword}\bfseries
+}
+\lstdefinelanguage{YAML}{
+  morekeywords={ros_topic,gz_topic,ros_type,gz_type,direction},
+  keywordstyle=\color{codekeyword}\bfseries
+}
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  backgroundcolor=\color{codebackground},
+  frame=single,
+  rulecolor=\color{black!15},
+  framerule=0.4pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  commentstyle=\color{codecomment},
+  keywordstyle=\color{codekeyword}\bfseries,
+  stringstyle=\color{codestring},
+  numberstyle=\color{codenumber},
+  xleftmargin=0.2cm,
+  xrightmargin=0.2cm
+}
+
+\begin{document}
+
+\begin{center}
+    {\LARGE \textbf{Assignment 3}}\\
+
+    \vspace{0.15cm}
+
+    {\Large \textbf{Applied Robotics and Autonomous Systems}}
+
+    \vspace{0.3cm}
+
+    ACIT4820-1 26H Oslomet
+
+    \vspace{0.3cm}
+
+    Nikolai Skaaheim-Grøna \\
+    Lucas Van Der Horst \\
+    Øyvind Amundsen Kjeang
+
+    \vspace{0.3cm}
+
+    Student numbers: 415337, 422009, oykje5980
+\end{center}
+
+\vspace{0.4cm}
+
+\tableofcontents
+
+\vspace{0.5cm}
+
+
+\section{Introduction}
+
+
+\section{Task 1: Finalise the Doomba's Body and Physics}
+
+
+\FloatBarrier
+\section{Task 2: The Maze Challenge}
+
+
+\FloatBarrier
+\section{Task 3: Make the Node Adaptive and Configurable}
+
+
+\FloatBarrier
+\section{Task 4: Where Does the Robot Think It Is?}
+
+
+\FloatBarrier
+\section{Problems Encountered and Solutions}
+
+
+\section{Reflection}
+
+
+\section{Use of AI}
+
+
+\end{document}
