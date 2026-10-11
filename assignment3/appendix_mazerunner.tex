@@ -1,0 +1,105 @@
+\appendix
+\section{Complete MazeRunner Node}
+
+\begin{lstlisting}[language=Python]
+import rclpy
+from rclpy.node import Node
+import numpy as np
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+from rclpy.qos import QoSProfile, DurabilityPolicy
+
+
+class MazeRunner(Node):
+    def __init__(self):
+        super().__init__('maze_runner')
+
+        self._scan_subscription = self.create_subscription(
+            msg_type=LaserScan, topic='scan', callback=self.handle_scan, 
+            qos_profile=QoSProfile(depth=10, durability=DurabilityPolicy.VOLATILE)
+        )
+        self._cmd_vel_publisher = self.create_publisher(
+            msg_type=Twist, topic='cmd_vel', 
+            qos_profile=QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        )
+        
+        self.declare_parameter('mazerunner/policy_state', 'off')
+        self.declare_parameter('mazerunner/forward_speed', 5.0) # meters per second
+        self.declare_parameter('mazerunner/rotation_speed', 8.0) # radians per second
+        self.declare_parameter('mazerunner/power_weight', 4.0) # weight for the power of the ranges
+
+    def handle_scan(self, scan_msg: LaserScan) -> None:
+        # scan_msg format:
+        # header # stamp + frame_id: laser_link (TF places the points)
+        # angle_min # angle of ranges[0] [rad]
+        # angle_max # angle of ranges[-1] [rad]
+        # angle_increment # angular step between rays [rad]
+        # time_increment # seconds between rays (motion skew)
+        # scan_time # seconds between full scans
+        # range_min # closer than this: not to be trusted [m]
+        # range_max # farther than this: no return -> inf [m]
+        # ranges # the distances, one per ray [m]
+        # intensities # return strength; often empty in sim
+        
+        # Convert to numpy arrays
+        ranges_np = np.array(scan_msg.ranges)
+        angles_np = scan_msg.angle_min + np.arange(len(ranges_np)) * scan_msg.angle_increment
+
+        # Clip ranges to be within the valid range of the sensor and filter out nan
+        ranges_np = np.clip(ranges_np, scan_msg.range_min, scan_msg.range_max)
+        mask = ~np.isnan(ranges_np)
+        ranges_np = ranges_np[mask]
+        angles_np = angles_np[mask]
+
+        # Filter out rays that are further than 90 degrees from the front (i.e., keep only rays within [-pi/2, pi/2]).
+        mask = (angles_np >= -np.pi/2) & (angles_np <= np.pi/2)
+        ranges_np = ranges_np[mask]
+        angles_np = angles_np[mask]
+
+        # Power weight the ranges to give far away open areas more influence
+        ranges_np = ranges_np ** self.get_parameter('mazerunner/power_weight').value
+
+        # Convert polar coordinates (ranges and angles) to Cartesian coordinates (x, y) relative to the sensor.
+        # REP-103: x = forward, y = left, angle measured CCW from the sensor's +x axis.
+        sensor_xs = ranges_np * np.cos(angles_np)
+        sensor_ys = ranges_np * np.sin(angles_np)
+        sensor_vectors = np.vstack((sensor_xs, sensor_ys))  # shape (2, n_rays)
+
+        # The steer vector is the sum of all sensor vectors, and normalized to have unit length.
+        steer_vector = np.sum(sensor_vectors, axis=1)
+        steer_vector = steer_vector / np.linalg.norm(steer_vector)
+
+        # Take the forward and rotate components from the steer vector.
+        steer_forward = steer_vector[0] * self.get_parameter('mazerunner/forward_speed').value
+        steer_rotate = np.arctan2(steer_vector[1], steer_vector[0]) * self.get_parameter('mazerunner/rotation_speed').value
+
+        
+        if self.get_parameter('mazerunner/policy_state').value == 'on':
+            self.publish_twist(steer_forward, steer_rotate)
+        elif self.get_parameter('mazerunner/policy_state').value == 'silent':
+            return
+        else:
+            self.publish_twist(0.0, 0.0) # stop the robot if policy state is neither 'on' nor 'silent'
+
+    def publish_twist(self, forward, rotate):
+        """
+        Publish a Twist message with the given forward and rotate speeds.
+
+        :param forward: The forward velocity in meters per second.
+        :param rotate: The rotational velocity in radians per second.
+        """
+        twist_msg = Twist()
+        twist_msg.linear.x = forward
+        twist_msg.angular.z = rotate
+        self._cmd_vel_publisher.publish(twist_msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    maze_runner = MazeRunner()
+    rclpy.spin(maze_runner)
+    maze_runner.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+\end{lstlisting}
